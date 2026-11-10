@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kuis Pintar Anak SD</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: linear-gradient(135deg, #74ebd5 0%, #ACB6E5 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            padding: 1rem;
+        }
+
+        .game-container {
+            background-color: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1), 0 20px 48px rgba(0,0,0,0.1);
+            border-radius: 2rem;
+            border: 4px solid #fff;
+            overflow: hidden;
+            width: 100%;
+            max-w: 500px;
+            position: relative;
+        }
+
+        .btn-option {
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 0px rgba(0,0,0,0.1);
+        }
+
+        .btn-option:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 0px rgba(0,0,0,0.15);
+        }
+
+        .btn-option:active:not(:disabled) {
+            transform: translateY(4px);
+            box-shadow: 0 0px 0px rgba(0,0,0,0);
+        }
+
+        .btn-action {
+            transition: all 0.2s;
+            box-shadow: 0 5px 0px #d97706;
+        }
+        .btn-action:active {
+            transform: translateY(5px);
+            box-shadow: 0 0px 0px #d97706;
+        }
+
+        .btn-action-green {
+            transition: all 0.2s;
+            box-shadow: 0 5px 0px #059669;
+        }
+        .btn-action-green:active {
+            transform: translateY(5px);
+            box-shadow: 0 0px 0px #059669;
+        }
+
+        /* Animations */
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .pop-in {
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+        }
+        .shake {
+            animation: shake 0.4s ease-in-out;
+        }
+        
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(2px);
+        }
+        
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-container pop-in">
+        
+        <!-- INITIAL LOADING SCREEN -->
+        <div id="loading-screen" class="p-8 text-center flex flex-col items-center justify-center min-h-[400px]">
+            <div class="loader mb-4"></div>
+            <h2 class="text-xl font-bold text-gray-700">Menyiapkan Soal...</h2>
+            <p class="text-gray-500 text-sm mt-2">Menghubungkan ke database</p>
+        </div>
+
+        <!-- START SCREEN -->
+        <div id="start-screen" class="hidden p-8 text-center flex flex-col items-center justify-center min-h-[400px]">
+            <div class="text-6xl mb-4">🚀</div>
+            <h1 class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-pink-500 mb-2 leading-tight">
+                Petualangan Pintar
+            </h1>
+            
+            <!-- Bagian Input Nama & Kelas -->
+            <div id="name-entry-section" class="w-full mt-2">
+                <p class="text-gray-600 font-bold mb-2 text-lg">Siapa kamu, jagoan?</p>
+                <input type="text" id="player-name-input" placeholder="Ketik Namamu..." class="w-full px-4 py-3 rounded-xl border-4 border-blue-200 focus:border-blue-500 focus:outline-none text-center font-bold text-xl mb-3 transition-colors text-gray-700">
+                <input type="text" id="player-class-input" placeholder="Kelas (Misal: 4A)" class="w-full px-4 py-3 rounded-xl border-4 border-blue-200 focus:border-blue-500 focus:outline-none text-center font-bold text-xl mb-4 transition-colors text-gray-700">
+                <button onclick="submitName()" class="btn-action bg-blue-500 hover:bg-blue-600 text-white font-black text-xl py-3 px-8 rounded-full w-full">
+                    LANJUT ➡️
+                </button>
+            </div>
+
+            <!-- Bagian Sapaan & Aturan Main -->
+            <div id="greeting-section" class="w-full mt-2 hidden">
+                <p id="greeting-text" class="text-2xl font-black text-blue-600 mb-2">Halo! 👋</p>
+                <p class="text-gray-600 font-bold mb-6 text-md">Siap menguji pengetahuanmu dan jadi juara?</p>
+                
+                <div class="bg-yellow-100 border-2 border-yellow-300 rounded-xl p-4 mb-6 text-left w-full text-sm text-yellow-800 font-bold shadow-sm">
+                    📋 Cara Bermain:
+                    <ul class="list-disc pl-5 mt-2 font-normal">
+                        <li>Jawab pertanyaan dengan cermat.</li>
+                        <li>Kamu punya 3 Nyawa (❤️).</li>
+                        <li>Nilai dan jawabanmu akan dikirim ke gurumu!</li>
+                    </ul>
+                </div>
+
+                <button onclick="startGame()" class="btn-action bg-amber-400 hover:bg-amber-500 text-white font-black text-2xl py-4 px-10 rounded-full w-full">
+                    MULAI MAIN!
+                </button>
+            </div>
+        </div>
+
+        <!-- GAME SCREEN -->
+        <div id="game-screen" class="hidden flex-col h-full">
+            <!-- HUD -->
+            <div class="bg-blue-500 text-white p-4 rounded-b-3xl shadow-md">
+                <div class="flex justify-between items-center mb-3">
+                    <div class="font-black text-lg bg-blue-600 px-3 py-1 rounded-full border border-blue-400 shadow-inner" id="level-display">
+                        Level 1
+                    </div>
+                    <div class="text-2xl tracking-widest" id="lives-display">
+                        ❤️❤️❤️
+                    </div>
+                </div>
+                
+                <div class="flex justify-between items-center text-sm font-bold mb-1">
+                    <span id="question-counter">Soal 1/10</span>
+                    <span id="score-display">Skor: 0</span>
+                </div>
+                
+                <!-- Progress Bar -->
+                <div class="w-full bg-blue-900/30 rounded-full h-3 mt-1 overflow-hidden">
+                    <div id="progress-bar" class="bg-yellow-400 h-3 rounded-full transition-all duration-300 ease-out" style="width: 10%;"></div>
+                </div>
+            </div>
+
+            <!-- Question Area -->
+            <div class="p-6 flex-grow flex flex-col justify-center">
+                <h2 id="question-text" class="text-xl sm:text-2xl font-black text-gray-800 text-center mb-6 min-h-[80px] flex items-center justify-center">
+                    Pertanyaan muncul di sini?
+                </h2>
+
+                <!-- Options -->
+                <div id="options-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Buttons generated by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- END SCREEN -->
+        <div id="end-screen" class="hidden p-8 text-center flex flex-col items-center justify-center min-h-[450px]">
+            <div id="save-status-container" class="mb-4">
+                <!-- Status penyimpanan ke database -->
+            </div>
+            
+            <div id="end-emoji" class="text-6xl mb-4 pop-in">🏆</div>
+            <h2 id="end-title" class="text-3xl font-black text-gray-800 mb-2">Permainan Selesai!</h2>
+            
+            <div class="bg-gray-100 rounded-2xl p-6 w-full mb-6 border-4 border-gray-200">
+                <p class="text-gray-500 font-bold mb-1">Skor Akhir Kamu</p>
+                <div id="final-score" class="text-6xl font-black text-blue-500 mb-4">100</div>
+                
+                <div id="badge-container" class="bg-white rounded-xl p-3 shadow-sm inline-block border-2 border-dashed border-gray-300">
+                    <p class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Lencana Predikat</p>
+                    <p id="badge-text" class="font-black text-lg text-purple-600">🏅 Jenius Cilik</p>
+                </div>
+            </div>
+
+            <button onclick="restartGame()" class="btn-action-green bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xl py-3 px-8 rounded-full w-full">
+                MAIN LAGI 🔄
+            </button>
+        </div>
+
+        <!-- FEEDBACK MODAL (Overlay) -->
+        <div id="feedback-modal" class="hidden absolute inset-0 modal-overlay z-50 flex items-center justify-center p-4">
+            <div id="feedback-card" class="bg-white rounded-3xl p-6 w-full max-w-sm text-center shadow-2xl border-4 transform transition-transform">
+                <div id="feedback-icon" class="text-6xl mb-2">✅</div>
+                <h3 id="feedback-title" class="text-3xl font-black mb-2">Benar!</h3>
+                <p id="feedback-explanation" class="text-gray-600 font-bold mb-6 bg-gray-50 p-4 rounded-xl text-sm border">
+                    Penjelasan jawaban akan muncul di sini.
+                </p>
+                <button onclick="nextQuestion()" class="btn-action bg-blue-500 hover:bg-blue-600 text-white font-black text-xl py-3 px-8 rounded-full w-full">
+                    LANJUT ➡️
+                </button>
+            </div>
+        </div>
+
+        <!-- LEVEL UP MODAL (Overlay) -->
+        <div id="level-up-modal" class="hidden absolute inset-0 modal-overlay z-50 flex items-center justify-center p-4">
+            <div class="bg-gradient-to-br from-yellow-300 to-orange-400 rounded-3xl p-8 w-full max-w-sm text-center shadow-2xl border-4 border-white transform transition-transform pop-in relative overflow-hidden">
+                <div class="absolute top-4 left-4 text-5xl animate-bounce">🎈</div>
+                <div class="absolute bottom-4 right-4 text-5xl animate-pulse">✨</div>
+                <div class="absolute top-8 right-6 text-3xl animate-bounce" style="animation-delay: 0.2s;">🎊</div>
+                
+                <div class="text-7xl mb-4 mt-2">🥳</div>
+                <h3 class="text-3xl font-black text-white mb-2" style="text-shadow: 2px 2px 0 #d97706;">SELAMAT!</h3>
+                <p id="level-up-message" class="text-white font-bold mb-6 text-lg leading-snug">
+                    Kamu hebat dan keren!
+                </p>
+                <div id="level-up-badge" class="inline-block bg-white text-orange-500 font-black text-xl px-6 py-2 rounded-full mb-6 shadow-md border-2 border-orange-200">
+                    Masuk Level Selanjutnya
+                </div>
+                <button onclick="continueAfterLevelUp()" class="btn-action bg-white text-orange-500 hover:bg-gray-100 font-black text-xl py-3 px-8 rounded-full w-full">
+                    SIAP! 🚀
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // ==========================================
+        // GANTI URL DI BAWAH INI DENGAN URL WEB APP ANDA
+        // ==========================================
+        const GAS_URL = 'URL_WEB_APP_GOOGLE_SCRIPT_ANDA_DISINI';
+        
+        // Data Fallback (jika gagal koneksi ke Database)
+        let quizData = [
+            { level: 1, question: "Berapakah hasil dari 5 + 7?", options: ["10", "11", "12", "13"], answer: 2, explanation: "5 ditambah 7 sama dengan 12." },
+            { level: 1, question: "Hewan apakah yang menghasilkan madu?", options: ["Lebah", "Kupu-kupu", "Semut", "Lalat"], answer: 0, explanation: "Lebah menghasilkan madu dari nektar bunga." },
+            { level: 2, question: "Alat untuk mengukur suhu badan adalah?", options: ["Penggaris", "Timbangan", "Termometer", "Kompas"], answer: 2, explanation: "Termometer adalah alat pengukur suhu." }
+        ];
+
+        // Variabel Status Game & Tracker Database
+        let playerName = "";
+        let playerClass = "";
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let lives = 3;
+        let totalQuestions = quizData.length;
+        
+        // Tracker untuk Guru
+        let correctCount = 0;
+        let wrongCount = 0;
+        let answerHistory = [];
+
+        // Elemen DOM
+        const loadingScreen = document.getElementById('loading-screen');
+        const startScreen = document.getElementById('start-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const endScreen = document.getElementById('end-screen');
+        const feedbackModal = document.getElementById('feedback-modal');
+        const levelUpModal = document.getElementById('level-up-modal');
+        const optionsContainer = document.getElementById('options-container');
+        
+        const optionColors = [
+            'bg-blue-100 border-blue-400 text-blue-800 hover:bg-blue-200',
+            'bg-green-100 border-green-400 text-green-800 hover:bg-green-200',
+            'bg-yellow-100 border-yellow-400 text-yellow-800 hover:bg-yellow-200',
+            'bg-pink-100 border-pink-400 text-pink-800 hover:bg-pink-200'
+        ];
+
+        // Inisialisasi: Ambil data dari Google Sheets saat web dibuka
+        window.onload = async () => {
+            if (GAS_URL !== 'URL_WEB_APP_GOOGLE_SCRIPT_ANDA_DISINI') {
+                try {
+                    const response = await fetch(GAS_URL);
+                    const result = await response.json();
+                    if (result.status === 'success' && result.data.length > 0) {
+                        quizData = result.data; // Ganti soal bawaan dengan soal dari database
+                    }
+                } catch (error) {
+                    console.error("Gagal mengambil data dari database, menggunakan soal bawaan.", error);
+                }
+            }
+            
+            totalQuestions = quizData.length;
+            
+            // Sembunyikan loading, tampilkan layar mulai
+            loadingScreen.classList.add('hidden');
+            startScreen.classList.remove('hidden');
+        };
+
+        function submitName() {
+            const nameInput = document.getElementById('player-name-input').value.trim();
+            const classInput = document.getElementById('player-class-input').value.trim();
+            
+            if (nameInput === "") {
+                document.getElementById('player-name-input').focus();
+                return;
+            }
+            
+            playerName = nameInput;
+            playerClass = classInput || "Tidak diisi";
+            
+            document.getElementById('name-entry-section').classList.add('hidden');
+            
+            const greetingSection = document.getElementById('greeting-section');
+            document.getElementById('greeting-text').innerText = `Halo, ${playerName}! 👋`;
+            greetingSection.classList.remove('hidden');
+            greetingSection.classList.add('pop-in');
+        }
+
+        function startGame() {
+            startScreen.classList.add('hidden');
+            endScreen.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+            
+            currentQuestionIndex = 0;
+            score = 0;
+            lives = 3;
+            correctCount = 0;
+            wrongCount = 0;
+            answerHistory = [];
+            
+            updateHUD();
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            const currentQ = quizData[currentQuestionIndex];
+            
+            const levelDisplay = document.getElementById('level-display');
+            levelDisplay.innerText = `Level ${currentQ.level}`;
+            if(currentQ.level === 1) levelDisplay.className = "font-black text-lg bg-green-500 px-4 py-1 rounded-full border-2 border-green-300 shadow-inner";
+            else if(currentQ.level === 2) levelDisplay.className = "font-black text-lg bg-orange-500 px-4 py-1 rounded-full border-2 border-orange-300 shadow-inner";
+            else levelDisplay.className = "font-black text-lg bg-red-500 px-4 py-1 rounded-full border-2 border-red-300 shadow-inner";
+
+            const questionText = document.getElementById('question-text');
+            questionText.classList.remove('pop-in');
+            void questionText.offsetWidth; 
+            questionText.classList.add('pop-in');
+            questionText.innerText = currentQ.question;
+
+            optionsContainer.innerHTML = '';
+
+            currentQ.options.forEach((option, index) => {
+                const btn = document.createElement('button');
+                const colorClass = optionColors[index % optionColors.length];
+                
+                btn.className = `btn-option text-lg font-black p-4 rounded-xl border-b-4 border-2 ${colorClass} w-full text-left flex items-center`;
+                const letter = String.fromCharCode(65 + index);
+                btn.innerHTML = `<span class="bg-white/50 text-gray-800 rounded-lg px-3 py-1 mr-3 border border-gray-300 shadow-sm">${letter}</span> ${option}`;
+                
+                btn.onclick = () => checkAnswer(index, option);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(selectedIndex, selectedText) {
+            const currentQ = quizData[currentQuestionIndex];
+            const isCorrect = (selectedIndex === currentQ.answer);
+
+            const buttons = optionsContainer.querySelectorAll('button');
+            buttons.forEach(btn => btn.disabled = true);
+
+            // Rekam jawaban untuk dikirim ke database
+            answerHistory.push({
+                question: currentQ.question,
+                selectedAnswer: selectedText,
+                isCorrect: isCorrect
+            });
+
+            if (isCorrect) {
+                score += 10;
+                correctCount++;
+            } else {
+                lives -= 1;
+                wrongCount++;
+                gameScreen.classList.remove('shake');
+                void gameScreen.offsetWidth;
+                gameScreen.classList.add('shake');
+            }
+
+            updateHUD();
+            showFeedback(isCorrect, currentQ.explanation);
+        }
+
+        function showFeedback(isCorrect, explanation) {
+            const feedbackCard = document.getElementById('feedback-card');
+            if (isCorrect) {
+                feedbackCard.className = "bg-white rounded-3xl p-6 w-full max-w-sm text-center shadow-2xl border-4 border-green-400 pop-in";
+                document.getElementById('feedback-icon').innerText = "🌟";
+                document.getElementById('feedback-title').innerText = "Benar!";
+                document.getElementById('feedback-title').className = "text-3xl font-black mb-2 text-green-500";
+            } else {
+                feedbackCard.className = "bg-white rounded-3xl p-6 w-full max-w-sm text-center shadow-2xl border-4 border-red-400 pop-in";
+                document.getElementById('feedback-icon').innerText = "Oops! 🤕";
+                document.getElementById('feedback-title').innerText = "Kurang Tepat!";
+                document.getElementById('feedback-title').className = "text-3xl font-black mb-2 text-red-500";
+            }
+            document.getElementById('feedback-explanation').innerText = explanation;
+            feedbackModal.classList.remove('hidden');
+        }
+
+        function nextQuestion() {
+            feedbackModal.classList.add('hidden');
+
+            if (lives <= 0) {
+                endGame(false);
+                return;
+            }
+
+            const prevLevel = quizData[currentQuestionIndex].level;
+            currentQuestionIndex++;
+
+            if (currentQuestionIndex < totalQuestions) {
+                const nextLevel = quizData[currentQuestionIndex].level;
+                if (nextLevel > prevLevel) {
+                    showLevelUp(nextLevel);
+                } else {
+                    updateHUD();
+                    loadQuestion();
+                }
+            } else {
+                endGame(true);
+            }
+        }
+
+        function showLevelUp(level) {
+            document.getElementById('level-up-message').innerText = `${playerName}, kamu hebat dan keren!`;
+            document.getElementById('level-up-badge').innerText = `Masuk Level ${level}`;
+            levelUpModal.classList.remove('hidden');
+        }
+
+        function continueAfterLevelUp() {
+            levelUpModal.classList.add('hidden');
+            updateHUD();
+            loadQuestion();
+        }
+
+        function updateHUD() {
+            document.getElementById('score-display').innerText = `Skor: ${score}`;
+            document.getElementById('question-counter').innerText = `Soal ${currentQuestionIndex + 1}/${totalQuestions}`;
+            
+            let hearts = "";
+            for(let i=0; i<3; i++) hearts += (i < lives) ? "❤️" : "🖤";
+            document.getElementById('lives-display').innerText = hearts;
+
+            const progressPercentage = ((currentQuestionIndex) / totalQuestions) * 100;
+            document.getElementById('progress-bar').style.width = `${progressPercentage === 0 ? 5 : progressPercentage}%`;
+        }
+
+        async function endGame(completed) {
+            gameScreen.classList.add('hidden');
+            endScreen.classList.remove('hidden');
+
+            document.getElementById('final-score').innerText = score;
+            const badgeText = document.getElementById('badge-text');
+            const endTitle = document.getElementById('end-title');
+            const saveStatusContainer = document.getElementById('save-status-container');
+
+            if (lives <= 0) {
+                endTitle.innerText = `Tetap Semangat, ${playerName}!`;
+                document.getElementById('end-emoji').innerText = "😢";
+                badgeText.innerText = "🥉 Semangat Belajar!";
+                badgeText.className = "font-black text-lg text-orange-500";
+            } else {
+                endTitle.innerText = `Luar Biasa, ${playerName}!`;
+                document.getElementById('end-emoji').innerText = "🎉";
+                
+                const percentage = (score / (totalQuestions * 10)) * 100;
+                if (percentage === 100) {
+                    badgeText.innerText = "🏅 Jenius Cilik";
+                    badgeText.className = "font-black text-lg text-purple-600";
+                } else if (percentage >= 70) {
+                    badgeText.innerText = "🥈 Bintang Kelas";
+                    badgeText.className = "font-black text-lg text-blue-600";
+                } else {
+                    badgeText.innerText = "🥉 Pelajar Rajin";
+                    badgeText.className = "font-black text-lg text-green-600";
+                }
+            }
+            
+            // Mengirim data ke Google Sheets (Backend)
+            if (GAS_URL !== 'URL_WEB_APP_GOOGLE_SCRIPT_ANDA_DISINI') {
+                saveStatusContainer.innerHTML = `<span class="bg-blue-100 text-blue-700 px-4 py-2 rounded-full font-bold text-sm">Sedang mengirim nilai ke guru... ⏳</span>`;
+                
+                const payload = {
+                    nama: playerName,
+                    kelas: playerClass,
+                    skor: score,
+                    benar: correctCount,
+                    salah: wrongCount,
+                    sisaNyawa: lives,
+                    history: answerHistory
+                };
+
+                try {
+                    // Gunakan text/plain untuk melewati batasan preflight CORS
+                    const response = await fetch(GAS_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'text/plain;charset=utf-8',
+                        },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        saveStatusContainer.innerHTML = `<span class="bg-green-100 text-green-700 px-4 py-2 rounded-full font-bold text-sm border border-green-300">✅ Nilai berhasil dikirim!</span>`;
+                    } else {
+                        saveStatusContainer.innerHTML = `<span class="bg-red-100 text-red-700 px-4 py-2 rounded-full font-bold text-sm">Gagal mengirim nilai.</span>`;
+                    }
+                } catch (error) {
+                    saveStatusContainer.innerHTML = `<span class="bg-orange-100 text-orange-700 px-4 py-2 rounded-full font-bold text-sm border border-orange-300">⚠️ Disimpan offline (Koneksi error).</span>`;
+                }
+            } else {
+                saveStatusContainer.innerHTML = `<span class="bg-gray-100 text-gray-500 px-4 py-2 rounded-full font-bold text-sm">Database belum dihubungkan.</span>`;
+            }
+        }
+
+        function restartGame() {
+            // Kembali ke layar input nama untuk memastikan data kelas bisa diganti jika orang lain yang main
+            endScreen.classList.add('hidden');
+            document.getElementById('name-entry-section').classList.remove('hidden');
+            document.getElementById('greeting-section').classList.add('hidden');
+            document.getElementById('player-name-input').value = "";
+            document.getElementById('player-class-input').value = "";
+            startScreen.classList.remove('hidden');
+            document.getElementById('save-status-container').innerHTML = "";
+        }
+
+    </script>
+</body>
+</html>
